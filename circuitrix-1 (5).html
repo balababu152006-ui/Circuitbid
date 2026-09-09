@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CIRCUITRIX — Symposium Auction Portal</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%230B1210%22/><circle cx=%2250%22 cy=%2250%22 r=%2222%22 fill=%22none%22 stroke=%22%23C97B3F%22 stroke-width=%228%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg:#0B1210; --bg-2:#0E1714; --panel:#121C18; --panel-2:#16221C;
+  --line:#233227; --line-soft:#1A2620;
+  --copper:#C97B3F; --copper-bright:#E29A5C; --amber:#F2B84B;
+  --teal:#49D3B4; --red:#E5544D;
+  --text:#E7EFEA; --muted:#7E9389; --muted-2:#5A6B62;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(circle at 1px 1px, rgba(201,123,63,0.07) 1px, transparent 0) 0 0/28px 28px,
+    var(--bg);
+  color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+::selection{background:var(--copper);color:#0B1210;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;}
+
+.trace{position:relative;}
+.trace::before{
+  content:'';position:absolute;left:0;right:0;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--line) 15%,var(--line) 85%,transparent);
+}
+.panel{background:var(--panel);border:1px solid var(--line);position:relative;}
+.panel::before,.panel::after{content:'';position:absolute;width:6px;height:6px;border:1px solid var(--line-soft);background:var(--bg-2);}
+.panel::before{top:-1px;left:-1px;}
+.panel::after{bottom:-1px;right:-1px;}
+
+.btn{font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:0.01em;border:1px solid var(--copper);color:var(--copper-bright);background:transparent;padding:10px 18px;cursor:pointer;transition:background .15s ease,color .15s ease,transform .05s ease;border-radius:2px;}
+.btn:hover{background:var(--copper);color:#0B1210;}
+.btn:active{transform:scale(0.98);}
+.btn:disabled{opacity:0.35;cursor:not-allowed;}
+.btn-solid{background:var(--copper);color:#0B1210;}
+.btn-solid:hover{background:var(--copper-bright);}
+.btn-ghost{border-color:var(--line);color:var(--muted);}
+.btn-ghost:hover{background:var(--panel-2);color:var(--text);}
+.btn-danger{border-color:var(--red);color:var(--red);}
+.btn-danger:hover{background:var(--red);color:#160B0B;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+input,select,textarea{font-family:'IBM Plex Mono',monospace;background:var(--bg-2);border:1px solid var(--line);color:var(--text);padding:10px 12px;outline:none;width:100%;border-radius:2px;}
+input:focus,select:focus,textarea:focus{border-color:var(--copper);}
+label{display:block;font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--muted);margin-bottom:6px;}
+
+.badge{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 8px;border:1px solid var(--line);color:var(--muted);display:inline-flex;align-items:center;gap:6px;border-radius:2px;}
+.badge.live{border-color:var(--amber);color:var(--amber);}
+.badge.sold{border-color:var(--copper);color:var(--copper-bright);}
+.badge.pending{border-color:var(--muted-2);color:var(--muted);}
+.badge.ok{border-color:var(--teal);color:var(--teal);}
+.badge.err{border-color:var(--red);color:var(--red);}
+
+.navlink{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:var(--muted);padding:14px 4px;border-bottom:2px solid transparent;cursor:pointer;background:transparent;border-top:none;border-left:none;border-right:none;}
+.navlink:hover{color:var(--text);}
+.navlink.active{color:var(--amber);border-bottom-color:var(--amber);}
+
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;}
+td{font-family:'IBM Plex Mono',monospace;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+tr:hover td{background:var(--panel-2);}
+
+.rise{animation:rise .2s ease-out;}
+@keyframes rise{from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);}}
+.scanline{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0.025;background:repeating-linear-gradient(0deg,#fff 0px,#fff 1px,transparent 1px,transparent 3px);}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(6,10,8,0.72);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:50;}
+.modal{background:var(--panel);border:1px solid var(--line);width:100%;max-width:480px;padding:24px;position:relative;}
+
+@media (max-width:720px){ .hide-mobile{display:none;} }
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const STORAGE_KEY = "circuitrix-appdata-v1";
+
+// ---- Supabase config (fill these in from Project Settings > API) ----
+const SUPABASE_URL = "https://vkytathsdizzdrqltcll.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_nNbe1iCD0LTMTbiHVefKVg_-07y02VU";
+const hasSupabase = !!(window.supabase && SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY_HERE");
+const sb = hasSupabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+function seedData(){
+  return {
+    meta: { eventName: "CIRCUITRIX", tagline: "Technical Symposium — Auction Round" },
+    admin: { userId: "admin", password: "circuitrix@2026" },
+    participants: [],
+    items: [],
+    auction: { activeItemId: null, status: "idle", highestBid: 0, highestBidderId: null, bids: [] },
+    history: []
+  };
+}
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function fmtPts(n){ return Number(n||0).toLocaleString("en-IN") + " pts"; }
+function fmtTime(iso){
+  if(!iso) return "—";
+  return new Date(iso).toLocaleString("en-IN",{ day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+}
+function nowISO(){ return new Date().toISOString(); }
+function genId(prefix, list){
+  let n = list.length + 1, id;
+  const existing = new Set(list.map(x => x.id));
+  do { id = prefix + String(n).padStart(3, "0"); n++; } while (existing.has(id));
+  return id;
+}
+function remainingOf(p){ return Number(p.totalPoints||0) - Number(p.spentPoints||0); }
+
+async function loadData(){
+  const res = await storageGet(STORAGE_KEY);
+  if(res && res.value){
+    try{ return JSON.parse(res.value); }catch(e){}
+  }
+  const seed = seedData();
+  await storageSet(STORAGE_KEY, JSON.stringify(seed));
+  return seed;
+}
+async function saveData(data){
+  return await storageSet(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Prefers Supabase (real cross-device sync on any host) when configured above.
+// Falls back to Claude's shared storage when opened as a live Claude artifact,
+// and finally to this device's localStorage so the app still works standalone.
+const hasCloudStorage = !!(window.storage && typeof window.storage.get === "function");
+async function storageGet(key){
+  if(hasSupabase){
+    try{
+      const { data, error } = await sb.from("kv_store").select("value").eq("key", key).maybeSingle();
+      if(error) throw error;
+      return data ? { key, value: data.value } : null;
+    }catch(e){ console.error("supabase read failed", e); return null; }
+  }
+  if(hasCloudStorage){
+    try{ return await window.storage.get(key, true); }catch(e){ return null; }
+  }
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? { key, value: raw } : null;
+  }catch(e){ return null; }
+}
+async function storageSet(key, value){
+  if(hasSupabase){
+    try{
+      const { error } = await sb.from("kv_store").upsert({ key, value, updated_at: new Date().toISOString() });
+      if(error) throw error;
+      return { key, value };
+    }catch(e){ console.error("supabase save failed", e); return null; }
+  }
+  if(hasCloudStorage){
+    try{ return await window.storage.set(key, value, true); }catch(e){ console.error("cloud save failed", e); return null; }
+  }
+  try{
+    localStorage.setItem(key, value);
+    return { key, value };
+  }catch(e){ console.error("local save failed", e); return null; }
+}
+
+// ---------- Small UI helpers ----------
+function Logo(){
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <svg width="26" height="26" viewBox="0 0 100 100">
+        <rect width="100" height="100" fill="#0B1210"/>
+        <circle cx="50" cy="50" r="26" fill="none" stroke="#C97B3F" strokeWidth="9"/>
+        <circle cx="50" cy="50" r="6" fill="#F2B84B"/>
+      </svg>
+      <div>
+        <div style={{fontWeight:700,fontSize:16,letterSpacing:"0.02em"}}>CIRCUITRIX</div>
+        <div className="mono" style={{fontSize:10,color:"var(--muted-2)",marginTop:-2}}>AUCTION PORTAL</div>
+      </div>
+    </div>
+  );
+}
+function TopBar({ onLogout, roleLabel, right }){
+  return (
+    <div style={{borderBottom:"1px solid var(--line)",background:"var(--bg-2)"}}>
+      <div style={{maxWidth:1180,margin:"0 auto",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+        <Logo/>
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          {right}
+          <span className="badge">{roleLabel}</span>
+          <button className="btn btn-ghost btn-sm" onClick={onLogout}>LOG OUT</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function Header({ title, subtitle }){
+  return (
+    <div style={{marginBottom:22}}>
+      {subtitle && <div className="mono" style={{fontSize:11,color:"var(--muted-2)",marginBottom:4}}>{subtitle}</div>}
+      <div style={{fontSize:24,fontWeight:700}}>{title}</div>
+    </div>
+  );
+}
+function StatCard({ label, value, accent, sub }){
+  return (
+    <div className="panel" style={{padding:"16px 18px"}}>
+      <div className="mono" style={{fontSize:11,color:"var(--muted)",marginBottom:8}}>{label}</div>
+      <div className="mono" style={{fontSize:24,fontWeight:700,color:accent||"var(--text)"}}>{value}</div>
+      {sub && <div style={{fontSize:12,color:"var(--muted-2)",marginTop:6}}>{sub}</div>}
+    </div>
+  );
+}
+function Modal({ title, onClose, children }){
+  return (
+    <div className="modal-backdrop" onMouseDown={(e)=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal rise">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+          <div style={{fontWeight:700,fontSize:16}}>{title}</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>CLOSE</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+function SyncBanner(){
+  if(hasSupabase || hasCloudStorage) return null;
+  return (
+    <div className="mono" style={{background:"#2A1E10",borderBottom:"1px solid var(--copper)",color:"var(--copper-bright)",fontSize:12,padding:"8px 16px",textAlign:"center"}}>
+      ⚠ Local-only mode: data is saved to this device only, not shared with other devices. Either open this app's live Claude artifact link (not a downloaded file), or fill in SUPABASE_URL / SUPABASE_ANON_KEY near the top of this file, for it to sync across admin and participants.
+    </div>
+  );
+}
+function LoadingScreen(){
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div className="mono" style={{color:"var(--muted)"}}>Loading Circuitrix…</div>
+    </div>
+  );
+}
+
+// ---------- Login ----------
+function LoginScreen({ onLogin, eventName }){
+  const [role, setRole] = useState("participant");
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  function submit(e){
+    e.preventDefault();
+    setError("");
+    const res = onLogin(role, userId, password);
+    if(!res.ok) setError(res.error);
+  }
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div className="rise" style={{width:"100%",maxWidth:420}}>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:26}}><Logo/></div>
+        <div className="panel" style={{padding:28}}>
+          <div className="mono" style={{fontSize:12,color:"var(--muted)",marginBottom:18}}>{eventName} · AUTHENTICATION</div>
+          <div style={{display:"flex",border:"1px solid var(--line)",marginBottom:22}}>
+            <button type="button" onClick={()=>{setRole("participant");setError("");}}
+              className="btn-sm" style={{flex:1,border:"none",background:role==="participant"?"var(--copper)":"transparent",color:role==="participant"?"#0B1210":"var(--muted)",padding:"10px 0",fontWeight:600}}>PARTICIPANT</button>
+            <button type="button" onClick={()=>{setRole("admin");setError("");}}
+              className="btn-sm" style={{flex:1,border:"none",background:role==="admin"?"var(--copper)":"transparent",color:role==="admin"?"#0B1210":"var(--muted)",padding:"10px 0",fontWeight:600}}>ADMIN</button>
+          </div>
+          <form onSubmit={submit}>
+            <div style={{marginBottom:14}}>
+              <label>{role==="admin" ? "Admin User ID" : "User ID"}</label>
+              <input autoFocus value={userId} onChange={e=>setUserId(e.target.value)} placeholder={role==="admin"?"admin":"e.g. CRX001"} />
+            </div>
+            <div style={{marginBottom:18}}>
+              <label>Password</label>
+              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+            {error && <div className="mono" style={{color:"var(--red)",fontSize:13,marginBottom:14}}>⚠ {error}</div>}
+            <button className="btn btn-solid" style={{width:"100%"}} type="submit">LOG IN</button>
+          </form>
+        </div>
+        <div className="mono" style={{textAlign:"center",marginTop:16,fontSize:12,color:"var(--muted-2)"}}>
+          Participants are registered by the Admin. Contact your event desk for credentials.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ================= ADMIN =================
+function AdminApp({ data, mutate, onLogout }){
+  const [tab, setTab] = useState("overview");
+  const tabs = [["overview","OVERVIEW"],["participants","PARTICIPANTS"],["leaderboard","LEADERBOARD"]];
+  return (
+    <div>
+      <TopBar onLogout={onLogout} roleLabel="ADMIN CONSOLE" />
+      <div style={{maxWidth:1180,margin:"0 auto",padding:"0 20px"}}>
+        <div className="trace" style={{display:"flex",gap:22,overflowX:"auto"}}>
+          {tabs.map(([k,label])=>(
+            <button key={k} className={"navlink"+(tab===k?" active":"")} onClick={()=>setTab(k)}>{label}</button>
+          ))}
+        </div>
+        <div style={{paddingTop:22,paddingBottom:60}}>
+          {tab==="overview" && <AdminOverview data={data}/>}
+          {tab==="participants" && <AdminParticipants data={data} mutate={mutate}/>}
+          {tab==="leaderboard" && <Leaderboard data={data}/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+function AdminOverview({ data }){
+  const participants = data.participants;
+  const totalIssued = participants.reduce((a,p)=>a+Number(p.totalPoints||0),0);
+  const totalSpent = participants.reduce((a,p)=>a+Number(p.spentPoints||0),0);
+  const soldItems = data.items.filter(i=>i.status==="sold").length;
+  return (
+    <div className="rise">
+      <Header title="Event Overview" subtitle="ADMIN"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14,marginBottom:22}}>
+        <StatCard label="PARTICIPANTS" value={participants.length}/>
+        <StatCard label="POINTS ISSUED" value={fmtPts(totalIssued)} accent="var(--amber)"/>
+        <StatCard label="POINTS SPENT" value={fmtPts(totalSpent)}/>
+        <StatCard label="ITEMS LISTED" value={data.items.length}/>
+        <StatCard label="ITEMS SOLD" value={soldItems + " / " + data.items.length} accent="var(--teal)"/>
+        <StatCard label="AUCTION STATUS" value={data.auction.status.toUpperCase()} accent={data.auction.status==="live"?"var(--amber)":"var(--muted)"}/>
+      </div>
+      <div className="panel" style={{padding:20}}>
+        <div style={{fontWeight:600,marginBottom:10}}>How this works</div>
+        <div className="mono" style={{fontSize:12,color:"var(--muted)",lineHeight:1.9}}>
+          1. Register participants and set their starting points in the Participants tab.<br/>
+          2. Add auction items and start a live auction in the Auction tab.<br/>
+          3. Participants bid from their own dashboard, or you can declare a winner manually.<br/>
+          4. The winning bid is deducted from that participant's points automatically.
+        </div>
+      </div>
+    </div>
+  );
+}
+function AdminParticipants({ data, mutate }){
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [revealed, setRevealed] = useState({});
+  const [error, setError] = useState("");
+  const [spendAmt, setSpendAmt] = useState({});
+  const [spendErr, setSpendErr] = useState({});
+
+  function openNew(){ setEditing(null); setError(""); setShowForm(true); }
+  function openEdit(p){ setEditing(p); setError(""); setShowForm(true); }
+
+  async function saveParticipant(payload){
+    setError("");
+    const clash = data.participants.find(p =>
+      p.userId.toLowerCase() === payload.userId.toLowerCase() && (!editing || p.id !== editing.id)
+    );
+    if(clash){ setError("This User ID is already registered."); return; }
+    const { ok } = await mutate(draft=>{
+      if(editing){
+        const idx = draft.participants.findIndex(p=>p.id===editing.id);
+        draft.participants[idx] = { ...draft.participants[idx], ...payload };
+      } else {
+        draft.participants.push({
+          id: genId("P", draft.participants),
+          name: payload.name,
+          userId: payload.userId,
+          password: payload.password,
+          totalPoints: Number(payload.totalPoints)||0,
+          spentPoints: 0,
+          itemsWon: 0
+        });
+      }
+    });
+    if(ok) setShowForm(false); else setError("Could not save — try again.");
+  }
+  async function removeParticipant(id){
+    if(!confirm("Remove this participant permanently?")) return;
+    await mutate(draft=>{ draft.participants = draft.participants.filter(p=>p.id!==id); });
+  }
+  async function recordSpend(p){
+    const amt = Number(spendAmt[p.id]);
+    setSpendErr(s=>({...s,[p.id]:""}));
+    if(!amt || amt <= 0){ setSpendErr(s=>({...s,[p.id]:"Enter a valid amount."})); return; }
+    if(amt > remainingOf(p)){ setSpendErr(s=>({...s,[p.id]:"Exceeds remaining balance."})); return; }
+    const { ok } = await mutate(draft=>{
+      const dp = draft.participants.find(x=>x.id===p.id);
+      if(!dp) return;
+      dp.spentPoints = Number(dp.spentPoints||0) + amt;
+      dp.itemsWon = Number(dp.itemsWon||0) + 1;
+    });
+    if(ok){ setSpendAmt(s=>({...s,[p.id]:""})); } else { setSpendErr(s=>({...s,[p.id]:"Could not save — try again."})); }
+  }
+
+  return (
+    <div className="rise">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:18}}>
+        <Header title="Participants" subtitle="ADMIN"/>
+        <button className="btn btn-solid" onClick={openNew}>+ ADD PARTICIPANT</button>
+      </div>
+      <div className="panel" style={{overflowX:"auto"}}>
+        <table>
+          <thead>
+            <tr>
+              <th>NAME</th><th>USER ID</th><th>PASSWORD</th>
+              <th>TOTAL</th><th>SPENT</th><th>REMAINING</th><th></th><th>WINNING BID</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.participants.length===0 && (
+              <tr><td colSpan="8" style={{padding:20,color:"var(--muted-2)"}}>No participants yet. Add one to get started.</td></tr>
+            )}
+            {data.participants.map(p=>(
+              <tr key={p.id}>
+                <td style={{fontFamily:"'Space Grotesk',sans-serif"}}>{p.name}</td>
+                <td>{p.userId}</td>
+                <td>
+                  {revealed[p.id] ? p.password : "••••••••"}{" "}
+                  <button className="btn btn-ghost btn-sm" style={{padding:"2px 8px"}}
+                    onClick={()=>setRevealed(r=>({...r,[p.id]:!r[p.id]}))}>{revealed[p.id]?"HIDE":"SHOW"}</button>
+                </td>
+                <td>{fmtPts(p.totalPoints)}</td>
+                <td>{fmtPts(p.spentPoints)}</td>
+                <td style={{color:"var(--amber)"}}>{fmtPts(remainingOf(p))}</td>
+                <td style={{display:"flex",gap:8}}>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(p)}>EDIT</button>
+                  <button className="btn btn-danger btn-sm" onClick={()=>removeParticipant(p.id)}>DELETE</button>
+                </td>
+                <td>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <input type="number" min="0" placeholder="Amount won"
+                      style={{width:110,padding:"6px 8px"}}
+                      value={spendAmt[p.id]||""}
+                      onChange={e=>setSpendAmt(s=>({...s,[p.id]:e.target.value}))}/>
+                    <button className="btn btn-solid btn-sm" onClick={()=>recordSpend(p)}>DEDUCT</button>
+                  </div>
+                  {spendErr[p.id] && <div className="mono" style={{color:"var(--red)",fontSize:11,marginTop:4}}>⚠ {spendErr[p.id]}</div>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {showForm && (
+        <ParticipantForm
+          initial={editing}
+          error={error}
+          onCancel={()=>setShowForm(false)}
+          onSave={saveParticipant}
+        />
+      )}
+    </div>
+  );
+}
+function ParticipantForm({ initial, onSave, onCancel, error }){
+  const [name, setName] = useState(initial ? initial.name : "");
+  const [userId, setUserId] = useState(initial ? initial.userId : "");
+  const [password, setPassword] = useState(initial ? initial.password : "");
+  const [totalPoints, setTotalPoints] = useState(initial ? initial.totalPoints : 1000);
+  function submit(e){
+    e.preventDefault();
+    if(!name.trim() || !userId.trim() || !password.trim()){ return; }
+    onSave({ name: name.trim(), userId: userId.trim(), password: password.trim(), totalPoints });
+  }
+  return (
+    <Modal title={initial ? "Edit Participant" : "Add Participant"} onClose={onCancel}>
+      <form onSubmit={submit}>
+        <div style={{marginBottom:12}}><label>Name / Team Name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Team Volt"/></div>
+        <div style={{marginBottom:12}}><label>User ID</label><input value={userId} onChange={e=>setUserId(e.target.value)} placeholder="e.g. CRX001"/></div>
+        <div style={{marginBottom:12}}><label>Password</label><input value={password} onChange={e=>setPassword(e.target.value)} placeholder="Set a login password"/></div>
+        <div style={{marginBottom:18}}>
+          <label>Total Points {initial ? "(editing this changes their remaining balance)" : ""}</label>
+          <input type="number" value={totalPoints} onChange={e=>setTotalPoints(e.target.value)} />
+        </div>
+        {error && <div className="mono" style={{color:"var(--red)",fontSize:13,marginBottom:14}}>⚠ {error}</div>}
+        <button className="btn btn-solid" style={{width:"100%"}} type="submit">{initial ? "SAVE CHANGES" : "CREATE PARTICIPANT"}</button>
+      </form>
+    </Modal>
+  );
+}
+
+function AdminAuction({ data, mutate }){
+  const [showItemForm, setShowItemForm] = useState(false);
+  const auction = data.auction;
+  const activeItem = data.items.find(i=>i.id===auction.activeItemId);
+  const pending = data.items.filter(i=>i.status==="pending");
+  const sold = data.items.filter(i=>i.status==="sold");
+
+  async function addItem(payload){
+    await mutate(draft=>{
+      draft.items.push({
+        id: genId("ITM", draft.items),
+        name: payload.name, description: payload.description,
+        basePrice: Number(payload.basePrice)||0,
+        status: "pending", winnerId: null, winningBid: 0, soldAt: null
+      });
+    });
+    setShowItemForm(false);
+  }
+  async function startAuction(itemId){
+    await mutate(draft=>{
+      if(draft.auction.status==="live") return;
+      const item = draft.items.find(i=>i.id===itemId);
+      if(!item) return;
+      item.status = "live";
+      draft.auction = { activeItemId: itemId, status:"live", highestBid:0, highestBidderId:null, bids:[] };
+    });
+  }
+  async function cancelAuction(){
+    if(!confirm("Cancel this auction? No winner will be recorded.")) return;
+    await mutate(draft=>{
+      const item = draft.items.find(i=>i.id===draft.auction.activeItemId);
+      if(item) item.status = "pending";
+      draft.auction = { activeItemId:null, status:"idle", highestBid:0, highestBidderId:null, bids:[] };
+    });
+  }
+  async function declareWinner(participantId, amount){
+    const p = data.participants.find(x=>x.id===participantId);
+    if(!p) return "Select a participant.";
+    if(amount <= 0) return "Enter a valid amount.";
+    if(amount > remainingOf(p)) return p.name + " only has " + fmtPts(remainingOf(p)) + " remaining.";
+    if(!confirm("Declare " + p.name + " as winner for " + fmtPts(amount) + "?")) return "";
+    await mutate(draft=>{
+      const item = draft.items.find(i=>i.id===draft.auction.activeItemId);
+      const dp = draft.participants.find(x=>x.id===participantId);
+      if(!item || !dp) return;
+      dp.spentPoints = Number(dp.spentPoints||0) + Number(amount);
+      item.status = "sold"; item.winnerId = dp.id; item.winningBid = Number(amount); item.soldAt = nowISO();
+      draft.history.push({ type:"sale", itemId: item.id, participantId: dp.id, amount: Number(amount), time: nowISO() });
+      draft.auction = { activeItemId:null, status:"idle", highestBid:0, highestBidderId:null, bids:[] };
+    });
+    return "";
+  }
+
+  return (
+    <div className="rise">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:18}}>
+        <Header title="Auction" subtitle="ADMIN"/>
+        <button className="btn btn-solid" onClick={()=>setShowItemForm(true)}>+ ADD ITEM</button>
+      </div>
+
+      {activeItem ? (
+        <LiveAuctionAdminPanel
+          item={activeItem} auction={auction} participants={data.participants}
+          onCancel={cancelAuction} onDeclare={declareWinner}
+        />
+      ) : (
+        <div className="panel" style={{padding:20,marginBottom:26}}>
+          <div style={{fontWeight:600,marginBottom:12}}>Start an auction</div>
+          {pending.length===0 && <div className="mono" style={{fontSize:13,color:"var(--muted-2)"}}>No pending items. Add one above.</div>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+            {pending.map(it=>(
+              <div key={it.id} className="panel" style={{padding:14}}>
+                <div className="mono" style={{fontSize:11,color:"var(--muted)"}}>{it.id} · Base {fmtPts(it.basePrice)}</div>
+                <div style={{fontWeight:600,margin:"6px 0"}}>{it.name}</div>
+                <button className="btn btn-sm" onClick={()=>startAuction(it.id)}>START LIVE AUCTION</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{marginTop:10}}>
+        <div style={{fontWeight:600,marginBottom:12}}>Sold Items ({sold.length})</div>
+        <div className="panel" style={{overflowX:"auto"}}>
+          <table>
+            <thead><tr><th>ITEM</th><th>WINNER</th><th>WINNING BID</th><th>SOLD AT</th></tr></thead>
+            <tbody>
+              {sold.length===0 && <tr><td colSpan="4" style={{padding:16,color:"var(--muted-2)"}}>None yet.</td></tr>}
+              {sold.map(it=>{
+                const winner = data.participants.find(p=>p.id===it.winnerId);
+                return (
+                  <tr key={it.id}>
+                    <td>{it.id} — {it.name}</td>
+                    <td>{winner ? winner.name : "—"}</td>
+                    <td style={{color:"var(--amber)"}}>{fmtPts(it.winningBid)}</td>
+                    <td>{fmtTime(it.soldAt)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showItemForm && (
+        <Modal title="Add Auction Item" onClose={()=>setShowItemForm(false)}>
+          <ItemForm onSave={addItem}/>
+        </Modal>
+      )}
+    </div>
+  );
+}
+function ItemForm({ onSave }){
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [basePrice, setBasePrice] = useState(100);
+  function submit(e){
+    e.preventDefault();
+    if(!name.trim()) return;
+    onSave({ name: name.trim(), description: description.trim(), basePrice });
+  }
+  return (
+    <form onSubmit={submit}>
+      <div style={{marginBottom:12}}><label>Item Name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Circuit Kit #1"/></div>
+      <div style={{marginBottom:12}}><label>Description (optional)</label><textarea rows="3" value={description} onChange={e=>setDescription(e.target.value)}/></div>
+      <div style={{marginBottom:18}}><label>Base Price (points)</label><input type="number" value={basePrice} onChange={e=>setBasePrice(e.target.value)}/></div>
+      <button className="btn btn-solid" style={{width:"100%"}} type="submit">ADD ITEM</button>
+    </form>
+  );
+}
+function LiveAuctionAdminPanel({ item, auction, participants, onCancel, onDeclare }){
+  const [selId, setSelId] = useState(auction.highestBidderId || "");
+  const [amount, setAmount] = useState(auction.highestBid || item.basePrice);
+  const [err, setErr] = useState("");
+  useEffect(()=>{
+    setSelId(auction.highestBidderId || "");
+    setAmount(auction.highestBid || item.basePrice);
+  }, [auction.highestBidderId, auction.highestBid, item.id]);
+
+  async function submit(e){
+    e.preventDefault();
+    setErr("");
+    const msg = await onDeclare(selId, Number(amount));
+    if(msg) setErr(msg);
+  }
+  return (
+    <div className="panel" style={{padding:20,marginBottom:26}}>
+      <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:10,marginBottom:14}}>
+        <div>
+          <span className="badge live">LIVE</span>
+          <div style={{fontWeight:700,fontSize:18,marginTop:8}}>{item.name}</div>
+          <div className="mono" style={{fontSize:12,color:"var(--muted)"}}>{item.id} · Base {fmtPts(item.basePrice)}</div>
+        </div>
+        <div className="mono" style={{textAlign:"right"}}>
+          <div style={{fontSize:11,color:"var(--muted)"}}>HIGHEST BID</div>
+          <div style={{fontSize:22,fontWeight:700,color:"var(--amber)"}}>{fmtPts(auction.highestBid)}</div>
+        </div>
+      </div>
+      <div style={{background:"var(--bg-2)",border:"1px solid var(--line-soft)",padding:12,marginBottom:16,maxHeight:160,overflowY:"auto"}}>
+        {auction.bids.length===0 && <div className="mono" style={{fontSize:12,color:"var(--muted-2)"}}>No online bids yet — you can also declare a winner directly from an in-room bid.</div>}
+        {[...auction.bids].reverse().map((b,i)=>{
+          const p = participants.find(x=>x.id===b.participantId);
+          return (
+            <div key={i} className="mono" style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--line-soft)"}}>
+              <span>{p ? p.name : b.participantId}</span>
+              <span style={{color:"var(--amber)"}}>{fmtPts(b.amount)}</span>
+              <span style={{color:"var(--muted-2)"}}>{fmtTime(b.time)}</span>
+            </div>
+          );
+        })}
+      </div>
+      <form onSubmit={submit} style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
+        <div style={{minWidth:200}}>
+          <label>Winning Participant</label>
+          <select value={selId} onChange={e=>setSelId(e.target.value)}>
+            <option value="">Select…</option>
+            {participants.map(p=><option key={p.id} value={p.id}>{p.name} ({p.userId}) — {fmtPts(remainingOf(p))} left</option>)}
+          </select>
+        </div>
+        <div style={{width:160}}>
+          <label>Winning Amount</label>
+          <input type="number" value={amount} onChange={e=>setAmount(e.target.value)}/>
+        </div>
+        <button className="btn btn-solid" type="submit">DECLARE WINNER &amp; DEDUCT</button>
+        <button className="btn btn-danger" type="button" onClick={onCancel}>CANCEL AUCTION</button>
+      </form>
+      {err && <div className="mono" style={{color:"var(--red)",fontSize:13,marginTop:10}}>⚠ {err}</div>}
+    </div>
+  );
+}
+
+function Leaderboard({ data }){
+  const rows = [...data.participants].map(p=>({
+    ...p,
+    itemsWon: Number(p.itemsWon||0),
+    remaining: remainingOf(p)
+  })).sort((a,b)=> b.itemsWon - a.itemsWon || b.spentPoints - a.spentPoints);
+  return (
+    <div className="rise">
+      <Header title="Leaderboard" subtitle="LIVE STANDINGS"/>
+      <div className="panel" style={{overflowX:"auto"}}>
+        <table>
+          <thead><tr><th>RANK</th><th>PARTICIPANT</th><th>ITEMS WON</th><th>SPENT</th><th>REMAINING</th></tr></thead>
+          <tbody>
+            {rows.length===0 && <tr><td colSpan="5" style={{padding:20,color:"var(--muted-2)"}}>No participants yet.</td></tr>}
+            {rows.map((p,i)=>(
+              <tr key={p.id}>
+                <td style={{fontWeight:700,color:i===0?"var(--amber)":i===1?"var(--copper-bright)":i===2?"var(--teal)":"var(--text)"}}>#{i+1}</td>
+                <td style={{fontFamily:"'Space Grotesk',sans-serif"}}>{p.name} <span className="mono" style={{color:"var(--muted-2)",fontSize:11}}>({p.userId})</span></td>
+                <td>{p.itemsWon}</td>
+                <td>{fmtPts(p.spentPoints)}</td>
+                <td style={{color:"var(--amber)"}}>{fmtPts(p.remaining)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ================= PARTICIPANT =================
+function ParticipantApp({ data, me, onLogout }){
+  return (
+    <div>
+      <TopBar onLogout={onLogout} roleLabel={me.userId} right={
+        <span className="mono" style={{fontSize:13,color:"var(--amber)"}}>{fmtPts(remainingOf(me))}</span>
+      }/>
+      <div style={{maxWidth:1180,margin:"0 auto",padding:"0 20px"}}>
+        <div style={{paddingTop:22,paddingBottom:60}}>
+          <ParticipantDashboard data={data} me={me}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+function ParticipantDashboard({ data, me }){
+  const itemsWon = Number(me.itemsWon||0);
+  return (
+    <div className="rise">
+      <Header title={me.name} subtitle={me.userId}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14,marginBottom:22}}>
+        <StatCard label="TOTAL POINTS" value={fmtPts(me.totalPoints)} accent="var(--amber)"/>
+        <StatCard label="SPENT" value={fmtPts(me.spentPoints)}/>
+        <StatCard label="REMAINING" value={fmtPts(remainingOf(me))} accent="var(--teal)"/>
+        <StatCard label="ITEMS WON" value={itemsWon}/>
+      </div>
+      <div className="panel" style={{padding:20}}>
+        <div style={{fontWeight:600,marginBottom:10}}>Your Details</div>
+        <div className="mono" style={{fontSize:13,color:"var(--muted)",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+          <div>User ID: <span style={{color:"var(--text)"}}>{me.userId}</span></div>
+          <div>Name: <span style={{color:"var(--text)"}}>{me.name}</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function ParticipantAuction({ data, me, onBid }){
+  const auction = data.auction;
+  const activeItem = data.items.find(i=>i.id===auction.activeItemId);
+  const pending = data.items.filter(i=>i.status==="pending");
+  return (
+    <div className="rise">
+      <Header title="Live Auction" subtitle="BID WITH YOUR POINTS"/>
+      {!activeItem && (
+        <div className="panel" style={{padding:24,textAlign:"center",color:"var(--muted)"}}>
+          No auction is live right now. Watch this space — the Admin will start the next item shortly.
+        </div>
+      )}
+      {activeItem && <LiveAuctionParticipantPanel item={activeItem} auction={auction} me={me} onBid={onBid}/>}
+      <div style={{marginTop:20}}>
+        <div style={{fontWeight:600,marginBottom:12}}>Items Up Next</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+          {pending.map(it=>(
+            <div key={it.id} className="panel" style={{padding:14}}>
+              <div className="mono" style={{fontSize:11,color:"var(--muted)"}}>{it.id}</div>
+              <div style={{fontWeight:600,margin:"6px 0"}}>{it.name}</div>
+              <div className="mono" style={{fontSize:12,color:"var(--muted)"}}>Base {fmtPts(it.basePrice)}</div>
+            </div>
+          ))}
+          {pending.length===0 && <div className="mono" style={{color:"var(--muted-2)",fontSize:13}}>No more items queued.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+function LiveAuctionParticipantPanel({ item, auction, me, onBid }){
+  const min = auction.highestBid > 0 ? auction.highestBid + 1 : item.basePrice;
+  const [amount, setAmount] = useState(min);
+  const [error, setError] = useState("");
+  useEffect(()=>{ setAmount(min); }, [min]);
+
+  async function submit(e){
+    e.preventDefault();
+    setError("");
+    const amt = Number(amount);
+    if(amt < min){ setError("Bid must be at least " + fmtPts(min) + "."); return; }
+    if(amt > remainingOf(me)){ setError("Bid exceeds your remaining points of " + fmtPts(remainingOf(me)) + "."); return; }
+    await onBid(amt);
+  }
+  const iAmHighest = auction.highestBidderId === me.id;
+  return (
+    <div className="panel" style={{padding:20,marginBottom:20}}>
+      <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:10,marginBottom:14}}>
+        <div>
+          <span className="badge live">LIVE</span>
+          <div style={{fontWeight:700,fontSize:18,marginTop:8}}>{item.name}</div>
+          {item.description && <div className="mono" style={{fontSize:12,color:"var(--muted)",marginTop:4}}>{item.description}</div>}
+        </div>
+        <div className="mono" style={{textAlign:"right"}}>
+          <div style={{fontSize:11,color:"var(--muted)"}}>HIGHEST BID</div>
+          <div style={{fontSize:22,fontWeight:700,color:"var(--amber)"}}>{fmtPts(auction.highestBid)}</div>
+          {iAmHighest && <div style={{fontSize:11,color:"var(--teal)"}}>YOU'RE LEADING</div>}
+        </div>
+      </div>
+      <form onSubmit={submit} style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap",background:"var(--bg-2)",padding:16,border:"1px solid var(--line)"}}>
+        <div>
+          <label>Your Bid (Remaining: {fmtPts(remainingOf(me))})</label>
+          <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} style={{width:180}}/>
+        </div>
+        <button className="btn btn-solid" type="submit">PLACE BID</button>
+        {error && <div className="mono" style={{color:"var(--red)",fontSize:13}}>⚠ {error}</div>}
+      </form>
+    </div>
+  );
+}
+function ParticipantItems({ data, me }){
+  const won = data.items.filter(i=>i.winnerId===me.id);
+  return (
+    <div className="rise">
+      <Header title="My Items" subtitle="WHAT YOU'VE WON"/>
+      {won.length===0 && <div className="panel" style={{padding:24,color:"var(--muted)"}}>You haven't won any items yet. Head to the Live Auction to bid.</div>}
+      <div style={{display:"grid",gap:14}}>
+        {won.map(it=>(
+          <div key={it.id} className="panel" style={{padding:18}}>
+            <div className="mono" style={{fontSize:11,color:"var(--muted)"}}>{it.id} · Won for {fmtPts(it.winningBid)} · {fmtTime(it.soldAt)}</div>
+            <div style={{fontWeight:700,fontSize:16,marginTop:4}}>{it.name}</div>
+            {it.description && <div className="mono" style={{fontSize:13,color:"var(--muted)",marginTop:6}}>{it.description}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ================= APP ROOT =================
+function App(){
+  const [data, setData] = useState(null);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const dataRef = useRef(null);
+  useEffect(()=>{ dataRef.current = data; }, [data]);
+
+  useEffect(()=>{
+    let mounted = true;
+    (async ()=>{
+      const d = await loadData();
+      if(mounted){ setData(d); setLoading(false); }
+    })();
+
+    let channel = null;
+    if(hasSupabase){
+      channel = sb.channel("kv_store_changes")
+        .on("postgres_changes", { event: "*", schema: "public", table: "kv_store", filter: `key=eq.${STORAGE_KEY}` }, payload=>{
+          const row = payload.new;
+          if(row && row.value){
+            try{ if(mounted) setData(JSON.parse(row.value)); }catch(e){}
+          }
+        })
+        .subscribe();
+    }
+
+    // Fallback poll — instant for non-Supabase modes, occasional safety-net refresh when Supabase realtime is active.
+    const poll = setInterval(async ()=>{
+      const fresh = await loadData();
+      if(mounted) setData(fresh);
+    }, hasSupabase ? 6000 : 1200);
+
+    return ()=>{ mounted = false; clearInterval(poll); if(channel) sb.removeChannel(channel); };
+  }, []);
+
+  const mutate = useCallback(async (fn)=>{
+    const fresh = await loadData();
+    const draft = clone(fresh);
+    fn(draft);
+    const ok = await saveData(draft);
+    if(ok) setData(draft);
+    return { ok, draft };
+  }, []);
+
+  function login(role, userIdRaw, password){
+    const d = dataRef.current;
+    if(!d) return { ok:false, error:"Still loading — try again in a moment." };
+    const userId = (userIdRaw||"").trim();
+    if(role === "admin"){
+      if(userId.toLowerCase() === d.admin.userId.toLowerCase() && password === d.admin.password){
+        setSession({ role:"admin" });
+        return { ok:true };
+      }
+      return { ok:false, error:"Invalid admin credentials." };
+    }
+    const p = d.participants.find(x=>x.userId.toLowerCase() === userId.toLowerCase());
+    if(!p) return { ok:false, error:"No participant with that User ID." };
+    if(p.password !== password) return { ok:false, error:"Incorrect password." };
+    setSession({ role:"participant", id: p.id });
+    return { ok:true };
+  }
+  function logout(){ setSession(null); }
+
+  if(loading || !data) return <><SyncBanner/><LoadingScreen/></>;
+  if(!session) return <><SyncBanner/><LoginScreen onLogin={login} eventName={data.meta.eventName}/></>;
+  if(session.role === "admin") return <><SyncBanner/><AdminApp data={data} mutate={mutate} onLogout={logout}/></>;
+  const me = data.participants.find(p=>p.id===session.id);
+  if(!me) return <><SyncBanner/><LoginScreen onLogin={login} eventName={data.meta.eventName}/></>;
+  return <><SyncBanner/><ParticipantApp data={data} me={me} onLogout={logout}/></>;
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
