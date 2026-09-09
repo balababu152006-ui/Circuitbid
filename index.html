@@ -96,7 +96,7 @@ const STORAGE_KEY = "circuitrix-appdata-v1";
 
 // ---- Supabase config (fill these in from Project Settings > API) ----
 const SUPABASE_URL = "https://vkytathsdizzdrqltcll.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_nNbe1iCD0LTMTbiHVefKVg_-07y02VU";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreXRhdGhzZGl6emRycWx0Y2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NDE3MTksImV4cCI6MjEwNDUxNzcxOX0.h4zG_xmpQXOpO5NE7ryDz3vRplNyuJ8GSysS2FdJ5F4";
 const hasSupabase = !!(window.supabase && SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY_HERE");
 const sb = hasSupabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
@@ -236,12 +236,7 @@ function Modal({ title, onClose, children }){
   );
 }
 function SyncBanner(){
-  if(hasSupabase || hasCloudStorage) return null;
-  return (
-    <div className="mono" style={{background:"#2A1E10",borderBottom:"1px solid var(--copper)",color:"var(--copper-bright)",fontSize:12,padding:"8px 16px",textAlign:"center"}}>
-      ⚠ Local-only mode: data is saved to this device only, not shared with other devices. Either open this app's live Claude artifact link (not a downloaded file), or fill in SUPABASE_URL / SUPABASE_ANON_KEY near the top of this file, for it to sync across admin and participants.
-    </div>
-  );
+  return null;
 }
 function LoadingScreen(){
   return (
