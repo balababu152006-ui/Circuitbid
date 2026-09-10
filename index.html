@@ -95,8 +95,8 @@ const { useState, useEffect, useCallback, useRef } = React;
 const STORAGE_KEY = "circuitrix-appdata-v1";
 
 // ---- Supabase config (fill these in from Project Settings > API) ----
-const SUPABASE_URL = "https://vkytathsdizzdrqltcll.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreXRhdGhzZGl6emRycWx0Y2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NDE3MTksImV4cCI6MjEwNDUxNzcxOX0.h4zG_xmpQXOpO5NE7ryDz3vRplNyuJ8GSysS2FdJ5F4";
+const SUPABASE_URL = "https://phbhqnnnrytvgmemmvbw.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_SpvpNDUoXpqBV5oQtGQn8g_aR2EoqFa";
 const hasSupabase = !!(window.supabase && SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY_HERE");
 const sb = hasSupabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
